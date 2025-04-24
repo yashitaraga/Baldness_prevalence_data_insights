@@ -1,0 +1,355 @@
+---
+title: "R Project"
+author: "Yashita Saranam"
+date: "2024-04-01"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+setwd("~/Downloads")  # Set working directory to Downloads folder
+data <- read.csv("Predict Hair Fall.csv")
+```
+
+```{r}
+head(data)
+```
+```{r}
+# Create a subset of the dataframe without the column to remove
+data <- subset(data, select = -Id)
+
+```
+
+
+```{r}
+head(data)
+summary(data)
+```
+
+```{r}
+# Check the dimensions (rows and columns) of the dataframe
+dimensions <- dim(data)
+num_rows <- dimensions[1]
+num_columns <- dimensions[2]
+
+# Print the number of rows and columns
+cat("Number of rows:", num_rows, "\n")
+cat("Number of columns:", num_columns, "\n")
+
+# Check the structure of the dataframe to identify variable types
+str(data)
+
+```
+
+```{r}
+# Check for null values in the dataframe
+null_values <- is.na(data)
+
+# Check if there are any null values overall
+if (any(null_values)) {
+  cat("There are null values in the dataset.\n")
+  
+  # Print the count of null values for each column
+  print(colSums(null_values))
+} else {
+  cat("There are no null values in the dataset.\n")
+}
+```
+
+```{r}
+# Check for duplicate rows in the dataframe
+duplicates <- duplicated(data)
+
+# Count the number of duplicate rows
+num_duplicates <- sum(duplicates)
+
+# Print the number of duplicate rows
+if (num_duplicates > 0) {
+  cat("There are duplicate rows in the dataset.\n")
+  cat("Number of duplicate rows:", num_duplicates, "\n")
+  
+  # Remove duplicate rows from the dataframe
+  data <- data[!duplicates, ]
+  
+  cat("Duplicate rows have been removed.\n")
+} else {
+  cat("There are no duplicate rows in the dataset.\n")
+}
+```
+
+```{r}
+# Calculating the Interquartile Range (IQR)
+variable <- data$Age
+Q1 <- quantile(variable, 0.25)
+Q3 <- quantile(variable, 0.75)
+IQR <- Q3 - Q1
+
+# Identify potential outliers
+potential_outliers <- variable < (Q1 - 1.5 * IQR) | variable > (Q3 + 1.5 * IQR)
+
+# Print the result
+print(any(potential_outliers))
+
+```
+
+```{r}
+# Assuming your data frame is named 'data_frame' and you want to get unique values for all 11 columns
+for (col in names(data)) {
+  unique_values <- unique(data[[col]])
+  cat("Unique values for column", col, ":\n")
+  print(unique_values)
+  cat("\n")
+}
+```
+
+```{r}
+# Assuming your column is named 'your_column' and your dataframe is named 'data_frame'
+# Compute the mode of the column 'Medical.Conditions'
+mode_value <- names(sort(table(data$Medical.Conditions), decreasing = TRUE))[1]
+mode_value
+
+# Replace "No Data" with the mode value
+data$Medical.Conditions[data$Medical.Conditions == "No Data"] <- mode_value
+```
+
+```{r}
+# Find the unique values in the 'Medical.Conditions' column
+unique_values <- unique(data$Medical.Conditions)
+
+# Exclude "No Data" from unique values
+other_values <- unique_values[unique_values != "No Data"]
+
+# Replace "No Data" with random values from other categories
+data$Medical.Conditions[data$Medical.Conditions == "No Data"] <- sample(other_values, sum(data$Medical.Conditions == "No Data"), replace = TRUE)
+
+```
+
+
+```{r}
+# Print unique values after replacement
+unique_values <- unique(data$Medical.Conditions)
+print(unique_values)
+```
+
+```{r}
+# Find the unique values in the 'Medical.Conditions' column
+unique_values <- unique(data$Medications...Treatments)
+
+# Exclude "No Data" from unique values
+other_values <- unique_values[unique_values != "No Data"]
+
+# Replace "No Data" with random values from other categories
+data$Medications...Treatments[data$Medications...Treatments == "No Data"] <- sample(other_values, sum(data$Medications...Treatments == "No Data"), replace = TRUE)
+
+# Print unique values after replacement
+unique_values <- unique(data$Medications...Treatments)
+print(unique_values)
+```
+
+```{r}
+# Find the unique values in the 'Medical.Conditions' column
+unique_values <- unique(data$Nutritional.Deficiencies)
+
+# Exclude "No Data" from unique values
+other_values <- unique_values[unique_values != "No Data"]
+
+# Replace "No Data" with random values from other categories
+data$Nutritional.Deficiencies[data$Nutritional.Deficiencies == "No Data"] <- sample(other_values, sum(data$Nutritional.Deficiencies == "No Data"), replace = TRUE)
+
+# Print unique values after replacement
+unique_values <- unique(data$Nutritional.Deficiencies)
+print(unique_values)
+```
+
+
+```{r}
+hist(data$Age)
+```
+
+```{r}
+boxplot(data$Age, main = "Age", col = "lightblue", border = "black", notch = FALSE)
+```
+```{r}
+# Q-Q Plot
+qqnorm(data$Age)
+qqline(data$Age, col = 2)
+
+# Shapiro-Wilk Test for Normality
+shapiro.test(data$Age)
+```
+```{r}
+columns_to_transform <- c(
+ "Age"
+)
+
+for (col in columns_to_transform) {
+  data[[col]] <- ifelse(data[[col]] > 0, log(data[[col]] + 1), 0)
+}
+
+par(mfrow = c(3, 3))
+for (col in columns_to_transform) {
+  hist(data[[col]], main = col, col = "lightblue", border = "black")
+}
+```
+```{r}
+# Create a list to store the results and interpretations
+chi_square_results <- list()
+
+# Loop through each independent variable and perform chi-square test
+independent_variables <- c("Genetics", "Hormonal.Changes", "Medical.Conditions", "Medications...Treatments", "Nutritional.Deficiencies", "Stress", "Poor.Hair.Care.Habits", "Environmental.Factors", "Smoking", "Weight.Loss")
+for (variable in independent_variables) {
+  # Convert the independent variable to a factor if it's not already
+  data[[variable]] <- factor(data[[variable]])
+  
+  # Perform chi-square test for independence
+  chi_square_result <- chisq.test(data[[variable]], data$Hair.Loss)
+  
+  # Store the result in the list
+  chi_square_results[[variable]] <- chi_square_result
+  
+  # Print the interpretation
+  cat("Chi-square test for", variable, ":\n")
+  print(chi_square_result)
+  if (chi_square_result$p.value < 0.05) {
+    cat("There is a significant association between", variable, "and Hair Loss.\n")
+  } else {
+    cat("There is no significant association between", variable, "and Hair Loss.\n")
+  }
+  cat("\n")
+}
+```
+
+
+```{r}
+# Create a list to store the results and interpretations
+fisher_results <- list()
+
+# Loop through each independent variable and perform Fisher's exact test with simulation
+for (variable in independent_variables) {
+  # Create a contingency table
+  contingency_table <- table(data[[variable]], data$Hair.Loss)
+  
+  # Perform Fisher's exact test with simulation
+  fisher_result <- fisher.test(contingency_table, simulate.p.value = TRUE)
+  
+  # Store the result in the list
+  fisher_results[[variable]] <- fisher_result
+  
+  # Print the interpretation
+  cat("Fisher's exact test for", variable, ":\n")
+  print(fisher_result)
+  if (fisher_result$p.value < 0.05) {
+    cat("There is a significant association between", variable, "and Hair Loss.\n")
+  } else {
+    cat("There is no significant association between", variable, "and Hair Loss.\n")
+  }
+  cat("\n")
+}
+
+```
+
+```{r}
+# Count occurrences of each unique value in the "Hair.Loss" column
+hair_loss_counts <- table(data$Hair.Loss)
+
+# Print the counts
+print(hair_loss_counts)
+```
+
+```{r}
+model <- glm(Hair.Loss ~ Age + Genetics + Hormonal.Changes + Medical.Conditions + 
+              Nutritional.Deficiencies + Stress + Poor.Hair.Care.Habits + Environmental.Factors + 
+              Smoking + Weight.Loss, 
+              data = data, family = binomial(link = "logit"))
+
+summary(model)
+```
+
+
+```{r}
+# Convert 'Hair.Loss' to a factor
+data$Hair.Loss <- factor(data$Hair.Loss)
+
+# Perform chi-square test for each categorical variable and store p-values
+p_values <- sapply(names(data), function(variable) {
+  if (is.factor(data[[variable]]) && variable != "Hair.Loss") {
+    chi_square_result <- chisq.test(data[[variable]], data$Hair.Loss)
+    return(chi_square_result$p.value)
+  } else {
+    return(NA)  # Ignore non-categorical variables
+  }
+})
+
+# Select the top 5 variables with the lowest p-values
+top_5_features <- names(sort(p_values, decreasing = FALSE))[1:5]
+
+# Print the top 5 features
+print(top_5_features)
+```
+
+```{r}
+model <- glm(Hair.Loss ~ Smoking + Weight.Loss + Genetics + Poor.Hair.Care.Habits + Medical.Conditions, 
+              data = data, family = binomial(link = "logit"))
+
+summary(model)
+```
+
+```{r}
+# Assuming 'data' is your dataframe
+
+# Convert 'Genetics' to one-hot encoding
+data$Genetics_Yes <- as.integer(data$Genetics == "Yes")
+data$Genetics_No <- as.integer(data$Genetics == "No")
+
+# Rename the columns
+colnames(data)[colnames(data) == "Genetics_Yes"] <- "Genetics_Yes"
+colnames(data)[colnames(data) == "Genetics_No"] <- "Genetics_No"
+
+```
+
+```{r}
+data <- subset(data, select = -c(Genetics))
+
+```
+
+```{r}
+
+# Convert 'Smoking' to one-hot encoding
+data$Smoking_Yes <- as.integer(data$Smoking == "Yes")
+data$Smoking_No <- as.integer(data$Smoking == "No")
+
+# Rename the columns
+colnames(data)[colnames(data) == "Smoking_Yes"] <- "Smoking_Yes"
+colnames(data)[colnames(data) == "Smoking_No"] <- "Smoking_No"
+
+```
+
+
+```{r}
+data <- subset(data, select = -c(Smoking))
+```
+
+
+```{r}
+data
+```
+
+```{r}
+model <- glm(Hair.Loss ~ Smoking_Yes + Medical.Conditions + Smoking_Yes*Medical.Conditions, 
+              data = data, family = binomial(link = "logit"))
+
+summary(model)
+```
+
+
+
+
+
+
+
+
+
+
+
+
